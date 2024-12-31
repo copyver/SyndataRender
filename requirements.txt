@@ -1,0 +1,10 @@
+gym==0.26.2
+pyglet==1.4.0b1
+pyrender==0.1.23
+pybullet==3.2.6
+scipy==1.10.1
+trimesh==4.1.4
+pyyaml
+numpy
+autolab_core
+open3d
