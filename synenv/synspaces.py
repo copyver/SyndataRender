@@ -46,9 +46,9 @@ class HeapStateSpace(gym.Space):
         obj_config = config["objects"]
         workspace_config = config["workspace"]
 
-        self.num_objs_rv = sstats.poisson(obj_config["numobjects_perimages"]["mean"] - 1)
-        self.max_objs = obj_config["numobjects_perimages"]["max"]
-        self.min_objs = obj_config["numobjects_perimages"]["min"]
+        self.num_objs_rv = sstats.poisson(obj_config["num_objects_per_images"]["mean"] - 1)
+        self.max_objs = obj_config["num_objects_per_images"]["max"]
+        self.min_objs = obj_config["num_objects_per_images"]["min"]
         self.replace = config["replace"]
 
         self.max_obj_diam = obj_config["max_diam"]
@@ -216,12 +216,12 @@ class HeapStateSpace(gym.Space):
 
             if not os.path.isabs(mesh_filename):
                 mesh_filename = os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)),
+                    os.getcwd(),
                     mesh_filename,
                 )
             if not os.path.isabs(pose_filename):
                 pose_filename = os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)),
+                    os.getcwd(),
                     pose_filename,
                 )
 

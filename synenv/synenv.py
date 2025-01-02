@@ -33,7 +33,7 @@ class BinHeapEnv(gym.Env):
         self._config = config
 
         # 读取配置
-        self._state_space_config = self._config["statespaces"]
+        self._state_space_config = self._config["state_spaces"]
 
         # 初始化类变量
         self._state = None
@@ -247,7 +247,7 @@ class BinHeapEnv(gym.Env):
         k_matrix = self._camera.intrinsics.proj_matrix.flatten().tolist()  # 将内参矩阵转换为列表
         self.camera_states[str(self.reset_count)] = {
             "cam_K": k_matrix,
-            "depth_scale": 10
+            "depth_scale": 1
         }
 
         # 更新重置次数
@@ -267,13 +267,13 @@ class BinHeapEnv(gym.Env):
         with open(filepath, 'w') as f:
             json.dump(self.obj_pose_data, f, indent=2)
 
-    def save_obj_instances_to_json(self,filepath):
+    def save_obj_instances_to_json(self, filepath):
 
         info = {
-            "description": "lhy 2024 Dataset",
+            "description": "lhy 2025 Dataset",
             "url": "",
             "version": "1.0",
-            "year": 2024,
+            "year": 2025,
             "contributor": "lin haiyang",
             "date_created": datetime.now().isoformat()
         }
@@ -318,7 +318,7 @@ class BinHeapEnv(gym.Env):
         """渲染当前场景的相机图像."""
         renderer = OffscreenRenderer(self.camera.width, self.camera.height)
         # flags = RenderFlags.NONE if color else RenderFlags.DEPTH_ONLY
-        flags = RenderFlags.SKIP_CULL_FACES if color else RenderFlags.DEPTH_ONLY
+        flags = RenderFlags.SHADOWS_DIRECTIONAL if color else RenderFlags.DEPTH_ONLY
         image = renderer.render(self._scene, flags=flags)
         renderer.delete()
         if color:
@@ -328,93 +328,142 @@ class BinHeapEnv(gym.Env):
         return image
 
     def render_segmentation_images(self):
-        """为处于状态的每个对象渲染分割掩模(模态和非模态)."""
-        full_depth = self.render_camera_image(color=False)
-        modal_data = np.zeros(
-            (full_depth.shape[0], full_depth.shape[1], len(self.obj_keys)),
-            dtype=np.uint8,
-        )
-        amodal_data = np.zeros(
-            (full_depth.shape[0], full_depth.shape[1], len(self.obj_keys)),
-            dtype=np.uint8,
-        )
-        renderer = OffscreenRenderer(self.camera.width, self.camera.height)
+        """
+        为处于场景中的每个对象渲染分割掩模(模态与非模态).
+
+        1. 获取整张图的深度信息 full_depth.
+        2. 为每个对象分别渲染:
+           - amodal_mask(全遮挡掩模).
+           - modal_mask(可见掩模).
+        3. 判断是否被遮挡(iscrowd)，并为未被遮挡物体生成相应标注信息和姿态信息.
+        4. 返回 amodal_data, modal_data，分别包含所有对象的非模态与模态掩模叠加信息.
+        """
+        # 1) 渲染出整张图的深度信息，以便后续进行可见性(模态)判断
+        full_depth = self.render_camera_image(color=False)  # shape: (H, W)
+
+        # 提前获取 H, W，便于后续使用
+        height, width = full_depth.shape[:2]
+
+        # 构建用于保存所有对象 amodal 和 modal 掩模数据的数组
+        # 形状: (H, W, num_objects)，每一层对应一个对象
+        num_objects = len(self.obj_keys)
+        amodal_data = np.zeros((height, width, num_objects), dtype=np.uint8)
+        modal_data = np.zeros((height, width, num_objects), dtype=np.uint8)
+
+        # 创建离屏渲染器，设置仅渲染深度
+        renderer = OffscreenRenderer(viewport_width=width, viewport_height=height)
         flags = RenderFlags.DEPTH_ONLY
 
-        # 隐藏所有网格
-        obj_mesh_nodes = [
-            next(iter(self._scene.get_nodes(name=k))) for k in self.obj_keys
-        ]
-        for mn in self._scene.mesh_nodes:
-            mn.mesh.is_visible = False
+        # 获取当前场景中所有对象对应的 mesh node
+        obj_mesh_nodes = []
+        for k in self.obj_keys:
+            node_list = list(self._scene.get_nodes(name=k))
+            if len(node_list) == 0:
+                raise ValueError(f"No node found for object key: {k}")
+            obj_mesh_nodes.append(node_list[0])
 
+        # 2) 隐藏场景中所有 mesh
+        for mesh_node in self._scene.mesh_nodes:
+            mesh_node.mesh.is_visible = False
+
+        # 遍历每个对象节点，单独渲染它的深度，得到 amodal_mask 和 modal_mask
         for i, node in enumerate(obj_mesh_nodes):
+            # 只显示当前对象
             node.mesh.is_visible = True
 
+            # 渲染当前对象深度
             depth = renderer.render(self._scene, flags=flags)
+
+            # 全覆盖掩模: 只要有深度，说明对象存在 (被遮挡也算)
             amodal_mask = depth > 0.0
+
+            # 模态掩模: 需要与 full_depth 相对应且深度几乎一致的点
+            # 若对象出现在整张 full_depth 的可见表面上，则深度相等(或几乎相等)
             modal_mask = np.logical_and(
-                (np.abs(depth - full_depth) < 1e-6), full_depth > 0.0
+                np.abs(depth - full_depth) < 1e-6,
+                full_depth > 0.0
             )
-            amodal_data[amodal_mask, i] = np.iinfo(np.uint8).max
-            modal_data[modal_mask, i] = np.iinfo(np.uint8).max
+
+            # 将掩模填充到对应的通道中
+            amodal_data[amodal_mask, i] = 255
+            modal_data[modal_mask, i] = 255
+
+            # 恢复为不可见，继续处理下一个对象
             node.mesh.is_visible = False
 
+        # 渲染结束后删除离屏渲染器
         renderer.delete()
 
-        # 显示所有网格
-        for mn in self._scene.mesh_nodes:
-            mn.mesh.is_visible = True
+        # 3) 显示场景中所有 mesh
+        for mesh_node in self._scene.mesh_nodes:
+            mesh_node.mesh.is_visible = True
 
+        # 4) 遍历对象掩模，判断遮挡关系，并收集标注及姿态信息
         self.obj_pose_data[str(self.image_id)] = []
+
         for i, obj_key in enumerate(self.obj_keys):
-            # 获取单个物体的amodal和modal掩模
-            amodal_mask = amodal_data[:, :, i]
-            modal_mask = modal_data[:, :, i]
+            # amodal 与 modal 掩模
+            mask_amodal = amodal_data[:, :, i]  # 全遮挡掩模
+            mask_modal = modal_data[:, :, i]  # 可见掩模
 
-            # 检测遮挡：如果非模态掩码中的像素多于模态掩码，认为物体被遮挡
-            if np.sum(amodal_mask) - np.sum(modal_mask) > 50:
-                iscrowd = 1  # 标记为被遮挡
+            # 遮挡判断：amodal mask 中的像素数大于 modal mask，说明有被遮挡部分
+            if np.sum(mask_amodal) - np.sum(mask_modal) > 50:
+                iscrowd = 1
             else:
-                iscrowd = 0  # 标记为未被遮挡
+                iscrowd = 0
 
-            # 仅处理未被遮挡的物体
+            # 若被遮挡(iscrowd=1)可根据业务需求选择处理或跳过
             if iscrowd == 0:
-                # 将掩模转换为uint8格式并处理
-                amodal_mask_uint8 = (modal_mask > 0) * 255  # 使用modal掩模，因为这是未遮挡的掩模
-                amodal_mask_uint8 = amodal_mask_uint8.astype(np.uint8)
+                # 仅处理未被遮挡物体(也可根据业务场景改成同时处理)
+                # 这一步可自行调整逻辑：此处示例直接拿 modal_mask 来做最终的可见掩模
+                final_mask = (mask_modal > 0).astype(np.uint8) * 255
 
-                segmentation = ssdata.generate_segmentation(amodal_mask_uint8)
-                bbox = ssdata.get_bbox_from_mask(amodal_mask_uint8)
-                category_key = obj_key.split('~')[0]
-                category_id = self._categories.get(category_key, None)
+                # 生成分割与 bounding box 信息
+                segmentation = ssdata.generate_segmentation(final_mask)
+                bbox = ssdata.get_bbox_from_mask(final_mask)
+
+                # 根据 obj_key 提取 category_id
+                category_key = obj_key.split('~')[1]
+                category_id = self._categories.get(category_key)
                 if category_id is None:
-                    raise ValueError(f"{obj_key} not found category id")
+                    raise ValueError(f"{obj_key} not found in categories")
 
-                annotation = ssdata.create_annotation(segmentation, bbox, iscrowd, self.image_id,
-                                                      category_id=category_id,
-                                                      annotation_id=self.annotation_id)
+                # 创建并保存标注信息
+                annotation = ssdata.create_annotation(
+                    segmentation,
+                    bbox,
+                    iscrowd,
+                    self.image_id,
+                    category_id=category_id,
+                    annotation_id=self.annotation_id
+                )
                 self.annotations_info.append(annotation)
 
-                m2w_pose = self._scene.get_pose(obj_mesh_nodes[i])  # 获取对应节点的姿态信息
-                r_m2w = m2w_pose[:3, :3]
-                t_m2w = m2w_pose[:3, 3]
+                # 获取姿态信息(物体相对世界坐标 pose)
+                m2w_pose = self._scene.get_pose(obj_mesh_nodes[i])
+                r_m2w, t_m2w = m2w_pose[:3, :3], m2w_pose[:3, 3]
 
-                r_c2w = self._camera.pose.rotation  # 获取相机姿态信息
+                # 获取相机姿态信息(相机相对世界坐标 pose)
+                r_c2w = self._camera.pose.rotation
                 t_c2w = self._camera.pose.translation
 
+                # 计算物体相对于相机的姿态
                 r_m2c, t_m2c = obj_to_camera_pose(r_c2w, t_c2w, r_m2w, t_m2w)
                 r_m2c = r_m2c.flatten().tolist()
                 t_m2c = t_m2c.flatten().tolist()
-                # 存储每个对象的轮廓和姿态信息
-                pose = {
+
+                # 记录每个对象的姿态信息
+                pose_info = {
                     "cam_R_m2c": r_m2c,
                     "cam_t_m2c": t_m2c,
                     "annotation_id": self.annotation_id
                 }
-                self.obj_pose_data[str(self.image_id)].append(pose)
+                self.obj_pose_data[str(self.image_id)].append(pose_info)
+
+                # 更新全局注释计数
                 self._up_annotation_id()
 
+        # 5) 返回每个对象的叠加 amodal_data 和 modal_data
         return amodal_data, modal_data
 
     def _create_raymond_lights(self):

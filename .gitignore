@@ -1,7 +1,6 @@
 syndatasets/
-meshs/
 templates/
-
+meshes/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

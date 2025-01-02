@@ -21,6 +21,7 @@ from autolab_core import (
 from synenv.utils import check_and_clear_directory
 from synenv.synenv import BinHeapEnv
 from synenv.scenesyndata import mask_to_coco
+
 logger = Logger.get_logger("./generate_syndata.py")
 
 SEED = 7
@@ -35,23 +36,24 @@ def generate_syndata(config):
 
     # 读取基础配置
     output_filename = config['output_filename']
-    numstate = config['numstate']
-    numimages_perstate = config['numimages_perstate']
+    num_state = config['num_states']
+    num_images_per_state = config['num_images_per_state']
     vis_config = config["vis"]
 
-    max_objs_per_state = config["statespaces"]["heap"]["objects"]["numobjects_perimages"]["max"]
+    max_objs_per_state = config["state_spaces"]["heap"]["objects"]["num_objects_per_images"]["max"]
 
     # 读取图像配置
     image_config = config['images']
     segmask_channels = max_objs_per_state + 1
 
     # 读取相机配置
-    camera_config = config['statespaces']['camera']
+    camera_config = config['state_spaces']['camera']
     im_width = camera_config['im_width']
     im_height = camera_config['im_height']
 
     imgdir = os.path.join(output_filename, 'images')
     check_and_clear_directory(imgdir, logger)
+
     # 设置输出目录
     if not os.path.isabs(output_filename):
         output_filename = os.path.join(os.getcwd(), output_filename)
@@ -107,7 +109,7 @@ def generate_syndata(config):
     )
 
     state_id = 0
-    while state_id < numstate:
+    while state_id < num_state:
         # 创建环境
         create_start = time.time()
         env = BinHeapEnv(config)
@@ -120,7 +122,7 @@ def generate_syndata(config):
             "创建环境用时 %.3f 秒" % (create_stop - create_start)
         )
 
-        states_remaining = numstate - state_id
+        states_remaining = num_state - state_id
         for i in range(states_remaining):
             logger.info("State: %06d" % state_id)
 
@@ -134,10 +136,10 @@ def generate_syndata(config):
                     env.view_3d_scene()
 
                 # 渲染图像
-                for k in range(numimages_perstate):
-                    env.image_id = numimages_perstate * state_id + k
+                for k in range(num_images_per_state):
+                    env.image_id = num_images_per_state * state_id + k
                     # 重置相机
-                    if numimages_perstate > 1:
+                    if num_images_per_state > 1:
                         env.reset_camera()
                     # 渲染图像
                     obs = env.render_camera_image(color=image_config["color"])
@@ -159,9 +161,9 @@ def generate_syndata(config):
                         plt.show()
 
                     if (
-                        image_config["modal"]
-                        or image_config["amodal"]
-                        or image_config["semantic"]
+                            image_config["modal"]
+                            or image_config["amodal"]
+                            or image_config["semantic"]
                     ):
 
                         # 渲染掩模分割图像
@@ -185,10 +187,10 @@ def generate_syndata(config):
 
                         # 将渲染得到的局部模态和全模态分割掩码填充到对应的数组中
                         modal_segmask_arr[
-                            :, :, : env.num_objects
+                        :, :, : env.num_objects
                         ] = modal_segmasks
                         amodal_segmask_arr[
-                            :, :, : env.num_objects
+                        :, :, : env.num_objects
                         ] = amodal_segmasks
 
                         # 如果配置中指定需要语义分割
@@ -213,7 +215,7 @@ def generate_syndata(config):
                             os.path.join(
                                 color_dir,
                                 "image_{:06d}.png".format(
-                                    numimages_perstate * state_id + k
+                                    num_images_per_state * state_id + k
                                 ),
                             )
                         )
@@ -222,7 +224,7 @@ def generate_syndata(config):
                             os.path.join(
                                 depth_dir,
                                 "image_{:06d}.png".format(
-                                    numimages_perstate * state_id + k
+                                    num_images_per_state * state_id + k
                                 ),
                             )
                         )
@@ -230,7 +232,7 @@ def generate_syndata(config):
                         modal_id_dir = os.path.join(
                             modal_dir,
                             "image_{:06d}".format(
-                                numimages_perstate * state_id + k
+                                num_images_per_state * state_id + k
                             ),
                         )
                         if not os.path.exists(modal_id_dir):
@@ -246,7 +248,7 @@ def generate_syndata(config):
                         amodal_id_dir = os.path.join(
                             amodal_dir,
                             "image_{:06d}".format(
-                                numimages_perstate * state_id + k
+                                num_images_per_state * state_id + k
                             ),
                         )
                         if not os.path.exists(amodal_id_dir):
@@ -263,7 +265,7 @@ def generate_syndata(config):
                             os.path.join(
                                 semantic_dir,
                                 "image_{:06d}.png".format(
-                                    numimages_perstate * state_id + k
+                                    num_images_per_state * state_id + k
                                 ),
                             )
                         )
@@ -299,7 +301,7 @@ def generate_syndata(config):
         gc.collect()
 
     logger.info(
-        "生成 %d 份图像数据" % (state_id * numimages_perstate)
+        "生成 %d 份图像数据" % (state_id * num_images_per_state)
     )
 
 
@@ -323,5 +325,4 @@ if __name__ == '__main__':
     start_time = time.time()
     generate_syndata(config)
     end_time = time.time()
-    logger.info("生成渲染数据集用时 %.3f min" % ((end_time - start_time)/60))
-
+    logger.info("生成渲染数据集用时 %.3f min" % ((end_time - start_time) / 60))

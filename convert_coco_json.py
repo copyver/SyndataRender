@@ -140,8 +140,7 @@ def convert_coco_json(json_path, output_dir, flag="train", use_segments=False):
 
 
 if __name__ == "__main__":
-    convert_coco_json(json_path='/home/yhlever/DeepLearning/6D_object_pose_estimation/Datasets'
-                                '/HANDLE/datasets_handle_real_130t_30v/val/scene_instances_gt.json',
-                      output_dir='/home/yhlever/DeepLearning/6D_object_pose_estimation/Datasets/handle-seg-real',
-                      flag='val',
+    convert_coco_json(json_path='/home/yhlever/DeepLearning/SyndataRender/syndatasets/scene_instances_gt.json',
+                      output_dir='/home/yhlever/DeepLearning/6D_object_pose_estimation/Datasets/indus',
+                      flag='train',
                       use_segments=True)

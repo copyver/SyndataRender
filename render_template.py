@@ -6,13 +6,6 @@ import cv2
 import numpy as np
 import trimesh
 
-cad_path = "/home/yhlever/DeepLearning/6D_object_pose_estimation/Datasets/HANDLE/models/handle_gt.obj"
-output_dir = "templates/"
-normalize = True
-colorize = False
-color = [157., 167., 163., 255.]
-cnos_cam_fpath = "./predefined_poses/cam_poses_level0.npy"
-
 
 def get_norm_info(mesh_path):
     mesh = trimesh.load(mesh_path, force='mesh')
@@ -101,4 +94,15 @@ def main():
 
 
 if __name__ == '__main__':
+    # cad_path = "/home/yhlever/DeepLearning/SyndataRender/meshes/objects/handle/handle.obj"
+    # output_dir = "templates/handle"
+    # normalize = True
+    # colorize = False
+    # cnos_cam_fpath = "predefined_poses/cam_poses_level0.npy"
+    color = [157., 167., 163., 255.]
+    cad_path = os.getenv("CAD_PATH", "/path/to/default/handle.obj")
+    output_dir = os.getenv("OUTPUT_DIR", "templates/handle")
+    cnos_cam_fpath = os.getenv("CNOS_CAM_FPATH", "predefined_poses/cam_poses_level0.npy")
+    normalize = os.getenv("NORMALIZE", "True") == "True"
+    colorize = os.getenv("COLORIZE", "False") == "True"
     main()

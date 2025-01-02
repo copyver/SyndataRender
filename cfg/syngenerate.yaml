@@ -1,8 +1,8 @@
-output_filename: "./syndatasets"
-numstate: 20
-numimages_perstate : 5
-urdf_cache_dir: ./meshes/cache
-debug: 1
+output_filename: syndatasets
+num_states: 3600
+num_images_per_state : 5
+urdf_cache_dir: meshes/cache
+debug: 0
 vis:
   state: 0
   obs: 0
@@ -15,7 +15,7 @@ images:
   amodal: 1
   semantic: 1
 
-statespaces:
+state_spaces:
   heap:
     workspace:
       min:
@@ -28,11 +28,11 @@ statespaces:
         - 0.3
       objects:
         bin:
-          mesh_filename: ../meshes/bin/bin.obj
-          pose_filename: ../meshes/bin/bin_pose.tf
+          mesh_filename: meshes/bin/bin.obj
+          pose_filename: meshes/bin/bin_pose.tf
         plane:
-          mesh_filename: ../meshes/plane/plane100.obj
-          pose_filename: ../meshes/plane/plane_pose.tf
+          mesh_filename: meshes/plane/plane100.obj
+          pose_filename: meshes/plane/plane_pose.tf
 
     center:
       min:
@@ -43,15 +43,20 @@ statespaces:
         - 0.1
 
     objects:
-      mesh_dir: ./meshes
+      mesh_dir: meshes/objects
       object_keys:
-        handle: all
-      num_objects: 10
-      numobjects_perimages:
+        handle: handle
+        socket:
+          - socket01
+          - socket02
+          - socket03
+          - socket04
+          - socket05
+      num_objects: 6
+      num_objects_per_images:
         min: 1
         max: 10
         mean: 5
-      num: 10
       train_pct: 0.8
       max_diam: 0.5
       planar_translation:
@@ -107,3 +112,8 @@ statespaces:
 
 categories:
   handle: 1
+  socket01: 2
+  socket02: 3
+  socket03: 4
+  socket04: 5
+  socket05: 6
