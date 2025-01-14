@@ -1,6 +1,6 @@
 output_filename: syndatasets
-num_states: 3600
-num_images_per_state : 5
+num_states: 10
+num_images_per_state : 2
 urdf_cache_dir: meshes/cache
 debug: 0
 vis:
@@ -98,8 +98,8 @@ state_spaces:
       max: 0.05
 
     radius:
-      min: 1.0
-      max: 1.0
+      min: 0.8
+      max: 1.2
     elevation:
       min: 0.01
       max: 10

@@ -49,7 +49,7 @@ def main():
             material = bproc.material.create('obj')
             material.set_principled_shader_value('Base Color', color)
             material.set_principled_shader_value('Metallic', 0.8)
-            material.set_principled_shader_value('Roughness', 0.4)
+            material.set_principled_shader_value('Roughness', 0.6)
             obj.set_material(0, material)
 
         # convert cnos camera poses to blender camera poses
@@ -59,7 +59,7 @@ def main():
 
         # set light
         light_scale = 2.5
-        light_energy = 1000
+        light_energy = 50000
         light1 = bproc.types.Light()
         light1.set_type("POINT")
         light1.set_location(
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     # normalize = True
     # colorize = False
     # cnos_cam_fpath = "predefined_poses/cam_poses_level0.npy"
-    color = [157., 167., 163., 255.]
+    color = [0.67, 0.71, 0.71, 0.]
     cad_path = os.getenv("CAD_PATH", "/path/to/default/handle.obj")
     output_dir = os.getenv("OUTPUT_DIR", "templates/handle")
     cnos_cam_fpath = os.getenv("CNOS_CAM_FPATH", "predefined_poses/cam_poses_level0.npy")

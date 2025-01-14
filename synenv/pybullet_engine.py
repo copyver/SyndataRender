@@ -98,17 +98,22 @@ class PybulletPhysicsEngine(PhysicsEngine):
                 globalScaling=globalScaling,
                 physicsClientId=self._physics_client
             )
-            if USE_GUI:
-                if obj.key == 'bin~0':
-                    pybullet.changeVisualShape(obj_id, -1, rgbaColor=[0, 0, 0.7, 1])
-                    num_joints = pybullet.getNumJoints(obj_id)
-                    for joint_index in range(num_joints):
-                        pybullet.changeVisualShape(obj_id, joint_index, rgbaColor=[0, 0, 0.7, 1])
-                if obj.key.split('~')[0] == 'handle':
-                    pybullet.changeVisualShape(obj_id, -1, rgbaColor=[0.7, 0.7, 0.7, 1])
-                    num_joints = pybullet.getNumJoints(obj_id)
-                    for joint_index in range(num_joints):
-                        pybullet.changeVisualShape(obj_id, joint_index, rgbaColor=[0.7, 0.7, 0.7, 1])
+            # if USE_GUI:
+            if obj.key == 'bin~0':
+                pybullet.changeVisualShape(obj_id, -1, rgbaColor=[0, 0, 0.7, 1])
+                num_joints = pybullet.getNumJoints(obj_id)
+                for joint_index in range(num_joints):
+                    pybullet.changeVisualShape(obj_id, joint_index, rgbaColor=[0, 0, 0.7, 1])
+            if obj.key.split('~')[0] == 'handle':
+                pybullet.changeVisualShape(obj_id, -1, rgbaColor=[0.67, 0.67, 0.71, 0])
+                num_joints = pybullet.getNumJoints(obj_id)
+                for joint_index in range(num_joints):
+                    pybullet.changeVisualShape(obj_id, joint_index, rgbaColor=[0.67, 0.71, 0.71, 0])
+            if obj.key.split('~')[0] == 'socket':
+                pybullet.changeVisualShape(obj_id, -1, rgbaColor=[0.67, 0.67, 0.71, 0])
+                num_joints = pybullet.getNumJoints(obj_id)
+                for joint_index in range(num_joints):
+                    pybullet.changeVisualShape(obj_id, joint_index, rgbaColor=[0.67, 0.71, 0.71, 0])
         except:
             raise Exception("Failed to load %s" % (urdf_filename))
 

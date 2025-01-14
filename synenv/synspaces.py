@@ -100,7 +100,7 @@ class HeapStateSpace(gym.Space):
         # 设置对象键和目录
         object_keys = []
         mesh_filenames = []
-        self._train_pct = obj_config["train_pct"]
+        # self._train_pct = obj_config["train_pct"]
         num_objects = obj_config["num_objects"]
         self._mesh_dir = obj_config["mesh_dir"]
         # 如果_mesh_dir不是绝对路径，则转换为绝对路径
@@ -127,13 +127,13 @@ class HeapStateSpace(gym.Space):
         np.random.shuffle(inds)
         self.all_object_keys = list(np.array(object_keys)[inds][:num_objects])  # 使用打乱后的索引选择object_keys，数量限制为num_objects
         all_mesh_filenames = list(np.array(mesh_filenames)[inds][:num_objects])  # 与all_object_keys相对应，获取对应的网格文件名列表
-        # 根据_train_pct划分训练集和测试集
-        self.train_keys = self.all_object_keys[
-            : int(len(self.all_object_keys) * self._train_pct)
-        ]
-        self.test_keys = self.all_object_keys[
-            int(len(self.all_object_keys) * self._train_pct):
-        ]
+        # # 根据_train_pct划分训练集和测试集
+        # self.train_keys = self.all_object_keys[
+        #     : int(len(self.all_object_keys) * self._train_pct)
+        # ]
+        # self.test_keys = self.all_object_keys[
+        #     int(len(self.all_object_keys) * self._train_pct):
+        # ]
         # 创建一个字典，映射每个对象键到一个唯一的ID（从1开始）
         self.obj_ids = dict(
             [(key, i + 1) for i, key in enumerate(self.all_object_keys)]
@@ -144,11 +144,11 @@ class HeapStateSpace(gym.Space):
             self.mesh_filenames.update({k: v})
             for k, v in zip(self.all_object_keys, all_mesh_filenames)
         ]
-        # 检查训练集和测试集是否都至少有一个对象，如果不是则抛出异常
-        if (len(self.test_keys) == 0 and self._train_pct < 1.0) or (
-            len(self.train_keys) == 0 and self._train_pct > 0.0
-        ):
-            raise ValueError("Not enough objects for train/test split!")
+        # # 检查训练集和测试集是否都至少有一个对象，如果不是则抛出异常
+        # if (len(self.test_keys) == 0 and self._train_pct < 1.0) or (
+        #     len(self.train_keys) == 0 and self._train_pct > 0.0
+        # ):
+        #     raise ValueError("Not enough objects for train/test split!")
 
     @property
     def obj_keys(self):
@@ -235,17 +235,17 @@ class HeapStateSpace(gym.Space):
             self._physics_engine.add(workspace_obj, static=True)
             workspace_obj_states.append(workspace_obj)
 
-        # 采样
-        train = True
-        # 根据设定的训练集比例随机决定是从训练集还是测试集中采样
-        if np.random.rand() > self._train_pct:
-            train = False
-            sample_keys = self.test_keys
-            self._logger.info("从测试集中采样")
-        else:
-            sample_keys = self.train_keys
-            self._logger.info("从训练集中采样")
-
+        # # 采样
+        # train = True
+        # # 根据设定的训练集比例随机决定是从训练集还是测试集中采样
+        # if np.random.rand() > self._train_pct:
+        #     train = False
+        #     sample_keys = self.test_keys
+        #     self._logger.info("从测试集中采样")
+        # else:
+        #     sample_keys = self.train_keys
+        #     self._logger.info("从训练集中采样")
+        sample_keys = self.all_object_keys
         total_num_objs = len(sample_keys)
 
         # 根据预设的概率分布抽样得到本次需要抽取的对象数量
@@ -273,7 +273,7 @@ class HeapStateSpace(gym.Space):
             obj_key = sample_keys[obj_inds[total_drops]]  # 根据打乱后的索引选取对象键
             obj_mesh = trimesh.load_mesh(self.mesh_filenames[obj_key])  # 加载对应的网格模型
             obj_mesh.visual = trimesh.visual.ColorVisuals(  # 设置网格模型的颜色为灰色
-                obj_mesh, vertex_colors=(0.7, 0.7, 0.7, 1.0)
+                obj_mesh, vertex_colors=(0.67, 0.71, 0.71, 1.0)
             )
             obj_mesh.density = self.obj_density
             # obj_state_key = "{}".format(obj_key)  # 为对象生成一个状态键
@@ -406,8 +406,8 @@ class HeapStateSpace(gym.Space):
 
         # 添加堆状态的元数据并返回它
         metadata = {"split": 0}
-        if not train:
-            metadata["split"] = 1
+        # if not train:
+        #     metadata["split"] = 1
 
         return HeapState(workspace_obj_states, objs_in_heap, metadata=metadata)
 

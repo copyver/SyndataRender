@@ -90,7 +90,7 @@ def generate_syndata(config):
     env = BinHeapEnv(config)
     obj_id_map = env.state_space.obj_id_map
     obj_keys = env.state_space.obj_keys
-    obj_splits = env.state_space.obj_splits
+    # obj_splits = env.state_space.obj_splits
     mesh_filenames = env.state_space.mesh_filenames
     save_obj_id_map = obj_id_map.copy()
     save_obj_id_map["environment"] = np.iinfo(np.uint32).max
@@ -99,7 +99,7 @@ def generate_syndata(config):
     # 保存元数据
     metadata = {}
     metadata["obj_ids"] = reverse_obj_ids
-    metadata["obj_splits"] = obj_splits
+    # metadata["obj_splits"] = obj_splits
     metadata["meshes"] = mesh_filenames
     json.dump(
         metadata,
@@ -115,7 +115,7 @@ def generate_syndata(config):
         env = BinHeapEnv(config)
         env.state_space.obj_id_map = obj_id_map
         env.state_space.obj_keys = obj_keys
-        env.state_space.set_splits(obj_splits)
+        # env.state_space.set_splits(obj_splits)
         env.state_space.mesh_filenames = mesh_filenames
         create_stop = time.time()
         logger.info(
@@ -294,7 +294,7 @@ def generate_syndata(config):
                 env = BinHeapEnv(config)
                 env.state_space.obj_id_map = obj_id_map
                 env.state_space.obj_keys = obj_keys
-                env.state_space.set_splits(obj_splits)
+                # env.state_space.set_splits(obj_splits)
                 env.state_space.mesh_filenames = mesh_filenames
 
         del env

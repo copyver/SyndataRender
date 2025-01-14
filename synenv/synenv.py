@@ -247,7 +247,7 @@ class BinHeapEnv(gym.Env):
         k_matrix = self._camera.intrinsics.proj_matrix.flatten().tolist()  # 将内参矩阵转换为列表
         self.camera_states[str(self.reset_count)] = {
             "cam_K": k_matrix,
-            "depth_scale": 1
+            "depth_scale": 5.0
         }
 
         # 更新重置次数
